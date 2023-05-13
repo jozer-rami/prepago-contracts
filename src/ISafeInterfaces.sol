@@ -10,4 +10,8 @@ interface ISafeInterfaces {
         bytes calldata data,
         Enum.Operation operation
     ) external returns (bool success);
+
+    function removeOwner(address prevOwner, address owner, uint256 _threshold) external;
+
+    function getOwners() external view returns (address[] memory);
 }
