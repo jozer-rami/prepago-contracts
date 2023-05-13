@@ -2,9 +2,11 @@
 pragma solidity >=0.8.0;
 
 import "./ISafeInterfaces.sol";
+import "./SetupHelper.sol";
 import "@openzeppelin/access/AccessControl.sol";
+import "forge-std/console.sol";
 
-contract PrepaidModule is AccessControl {
+contract PrepaidModule is AccessControl, SetupHelper {
     address safeProxyFactory;
     address safeMasterCopy;
     address merchand;
@@ -15,8 +17,6 @@ contract PrepaidModule is AccessControl {
     bytes32 public constant CARD_HODLER_ROLE = keccak256("CARD_HODLER_ROLE");
     // Safe FALLBACK_HANDLER
     address internal constant FALLBACK_HANDLER = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4;
-
-    event ModuleEnabled(address indexed safe, address indexed module);
 
     error TxExecutionModuleFailed();
     error CreateSafeWithProxyFailed();
@@ -45,7 +45,12 @@ contract PrepaidModule is AccessControl {
         );
     }
 
-    function createSafeProxy(address[] memory owners, uint256 threshold) external returns (address safe) {
+    function createSafeProxy() external returns (address safe) {
+        address[] memory owners = new address[](2);
+        owners[0] = cardHodler;
+        owners[1] = merchand;
+        uint256 threshold = 2;
+
         bytes memory internalEnableModuleData = abi.encodeWithSignature("internalEnableModule(address)", address(this));
 
         bytes memory data = abi.encodeWithSignature(
@@ -54,7 +59,7 @@ contract PrepaidModule is AccessControl {
             threshold,
             this,
             internalEnableModuleData,
-            FALLBACK_HANDLER,
+            address(0x0),
             address(0x0),
             uint256(0),
             payable(address(0x0))
@@ -66,14 +71,5 @@ contract PrepaidModule is AccessControl {
         } catch {
             revert CreateSafeWithProxyFailed();
         }
-    }
-
-    function internalEnableModule(address module) internal {
-        this.enableModule(module);
-    }
-
-    /// @dev Non-executed code, function called by the new safe
-    function enableModule(address module) external {
-        emit ModuleEnabled(address(this), module);
     }
 }
