@@ -8,6 +8,7 @@ import {GnosisSafeProxy} from "@safe-contracts/proxies/GnosisSafeProxy.sol";
 import {GnosisSafe} from "@safe-contracts/GnosisSafe.sol";
 import {IProxyCreationCallback} from "@safe-contracts/proxies/IProxyCreationCallback.sol";
 import {PrepaidModule} from "../src/PrepaidModule.sol";
+import {PrepaidGuardCreator} from "../src/PrepaidGuardCreator.sol";
 import "@solenv/Solenv.sol";
 
 contract DeployAllTest is Script {
@@ -48,6 +49,8 @@ contract DeployPrepaidModule is Script {
 }
 
 contract DeployPrepaidModuleWithSafe is Script {
+    event safeCreated(address);
+
     function run() public {
         Solenv.config();
         address merchand = vm.envAddress("MERCHAND");
@@ -59,7 +62,27 @@ contract DeployPrepaidModuleWithSafe is Script {
         PrepaidModule prepaidModule =
             new PrepaidModule(address(safeProxyFactory), address(safeMasterCopy), cardHodler, merchand);
         address newPrepaidCard = prepaidModule.createSafeProxy();
+        emit safeCreated(newPrepaidCard);
 
+        vm.stopBroadcast();
+    }
+}
+
+contract DeployPrepaidGuardWithSafe is Script {
+    event safeCreated(address);
+
+    function run() public {
+        Solenv.config();
+        address merchand = vm.envAddress("MERCHAND");
+        address cardHodler = vm.envAddress("CARD_HODLER_1");
+        address safeProxyFactory = vm.envAddress("SAFE_PROXY_FACTORY_ADDRESS");
+        address safeMasterCopy = vm.envAddress("SAFE_MASTER_COPY_ADDRESS");
+
+        vm.startBroadcast();
+        PrepaidGuardCreator prepaidGuard =
+            new PrepaidGuardCreator(address(safeProxyFactory), address(safeMasterCopy), cardHodler, merchand);
+        address newPrepaidCard = prepaidGuard.createSafeProxy();
+        emit safeCreated(newPrepaidCard);
         vm.stopBroadcast();
     }
 }

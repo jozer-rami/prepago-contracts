@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 contract SetupHelper {
     event ModuleEnabled(address indexed safe, address indexed module);
+    event GuardSet(address indexed safe, address indexed module);
 
     // In our `SafeTeller.createSafe()` function, we call `GnosisSafeProxyFactory.createProxyWithNonce()`
     // with a callback to this `delegateSetup()` function. The proxy factory will then call this function
@@ -15,8 +16,16 @@ contract SetupHelper {
     }
 
     /// @dev Non-executed code, function called by the new safe
-    /// @param module Address of Keyper module
     function enableModule(address module) external {
         emit ModuleEnabled(address(this), module);
+    }
+
+    function internalSetGuard(address guard) external {
+        this.setGuard(guard);
+    }
+
+    /// @dev Non-executed code, function called by the new safe
+    function setGuard(address guard) external {
+        emit GuardSet(address(this), guard);
     }
 }

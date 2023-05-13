@@ -10,6 +10,8 @@ interface ISafeInterfaces {
 
     function removeOwner(address prevOwner, address owner, uint256 _threshold) external;
 
+    function swapOwner(address prevOwner, address oldOwner, address newOwner) external;
+
     function getOwners() external view returns (address[] memory);
 }
 

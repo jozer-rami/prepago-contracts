@@ -17,6 +17,7 @@ contract PrepaidModule is AccessControl, SetupHelper {
     bytes32 public constant CARD_HODLER_ROLE = keccak256("CARD_HODLER_ROLE");
     // Safe FALLBACK_HANDLER
     address internal constant FALLBACK_HANDLER = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4;
+    address internal constant SENTINEL_OWNERS = address(0x1);
 
     error TxExecutionModuleFailed();
     error CreateSafeWithProxyFailed();
@@ -32,7 +33,8 @@ contract PrepaidModule is AccessControl, SetupHelper {
         _setupRole(CARD_HODLER_ROLE, _cardHodler);
     }
 
-    function activateCard(address safe) public onlyRole(MERCHAND_ROLE) {
+    function activateCard(address safe) public {
+        require(hasRole(MERCHAND_ROLE, msg.sender));
         ISafeInterfaces safeDestination = ISafeInterfaces(safe);
         // Get previous owner, for now the first owner will always be the card owner
         address[] memory owners = safeDestination.getOwners();
@@ -42,6 +44,22 @@ contract PrepaidModule is AccessControl, SetupHelper {
         require(
             safeDestination.execTransactionFromModule(safe, 0, data, Enum.Operation.Call),
             "Could not execute remove merchand to activate card"
+        );
+    }
+
+    function claimOwnership(address safe, address newOwner) public {
+        require(hasRole(CARD_HODLER_ROLE, msg.sender));
+        ISafeInterfaces safeDestination = ISafeInterfaces(safe);
+        // Get previous owner, for now the first owner will always be the card owner
+        // address[] memory owners = safeDestination.getOwners();
+        // address prevOwner = owners[0];
+
+        bytes memory data =
+            abi.encodeWithSelector(ISafeInterfaces.swapOwner.selector, SENTINEL_OWNERS, cardHodler, newOwner);
+
+        require(
+            safeDestination.execTransactionFromModule(safe, 0, data, Enum.Operation.Call),
+            "Could not execute claimOwnership of the card"
         );
     }
 
