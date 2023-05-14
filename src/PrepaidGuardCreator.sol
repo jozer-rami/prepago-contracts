@@ -6,7 +6,6 @@ import "./SetupHelper.sol";
 import {Guard} from "@safe-contracts/base/GuardManager.sol";
 
 contract PrepaidGuardCreator is SetupHelper, Guard {
-
     address public safeProxyFactory;
     address public safeMasterCopy;
     bool cardActivated;
@@ -24,7 +23,7 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
     }
 
     // Create a safe proxy that will set this contract as a Guard
-    function createSafeProxy(address[] memory owners, uint256 threshold) external returns (address safe) {
+    function createSafeProxy(address[] memory owners, uint256 threshold) external payable returns (address safe) {
         bytes memory internalSetGuardData = abi.encodeWithSignature("internalSetGuard(address)", address(this));
 
         bytes memory data = abi.encodeWithSignature(
@@ -41,6 +40,8 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
 
         ISafeProxy safeProxy = ISafeProxy(safeProxyFactory);
         try safeProxy.createProxy(safeMasterCopy, data) returns (address newSafe) {
+            // Forward Ether to the newly created safe address
+            payable(newSafe).transfer(msg.value);
             return newSafe;
         } catch {
             revert CreateSafeWithProxyFailed();
