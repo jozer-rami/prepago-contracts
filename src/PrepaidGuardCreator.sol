@@ -6,35 +6,25 @@ import "./SetupHelper.sol";
 import {Guard} from "@safe-contracts/base/GuardManager.sol";
 
 contract PrepaidGuardCreator is SetupHelper, Guard {
-    address safeProxyFactory;
-    address safeMasterCopy;
-    address merchand;
-    address cardHodler;
+
+    address public safeProxyFactory;
+    address public safeMasterCopy;
+    bool cardActivated;
 
     // Safe FALLBACK_HANDLER
     address internal constant FALLBACK_HANDLER = 0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4;
-    address internal constant SENTINEL_OWNERS = address(0x1);
     bytes4 public constant ENCODED_SIG_REMOVE_OWNER = bytes4(keccak256("removeOwner(address,address,uint256)"));
 
     error CreateSafeWithProxyFailed();
-    error CallerOfATransactionHasToBeTheMerchand();
 
-    event callerIs(address);
-    event checkTx();
-
-    constructor(address _safeProxyFactory, address _safeMasterCopy, address _merchand, address _cardHodler) {
+    constructor(address _safeProxyFactory, address _safeMasterCopy) {
         safeProxyFactory = _safeProxyFactory;
         safeMasterCopy = _safeMasterCopy;
-        merchand = _merchand;
-        cardHodler = _cardHodler;
+        cardActivated = false;
     }
 
-    function createSafeProxy() external returns (address safe) {
-        address[] memory owners = new address[](2);
-        owners[0] = cardHodler;
-        owners[1] = merchand;
-        uint256 threshold = 1;
-
+    // Create a safe proxy that will set this contract as a Guard
+    function createSafeProxy(address[] memory owners, uint256 threshold) external returns (address safe) {
         bytes memory internalSetGuardData = abi.encodeWithSignature("internalSetGuard(address)", address(this));
 
         bytes memory data = abi.encodeWithSignature(
@@ -43,7 +33,7 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
             threshold,
             this,
             internalSetGuardData,
-            address(0x0),
+            FALLBACK_HANDLER,
             address(0x0),
             uint256(0),
             payable(address(0x0))
@@ -60,7 +50,7 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
     function checkTransaction(
         address,
         uint256,
-        bytes memory data,
+        bytes calldata data,
         Enum.Operation,
         uint256,
         uint256,
@@ -70,8 +60,11 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
         bytes memory,
         address
     ) external override {
-        emit callerIs(msg.sender);
-        emit checkTx();
+        // Only Allow Remove Owner function while the prepaid card has not been activated
+        if (!cardActivated) {
+            require(bytes4(data) == ENCODED_SIG_REMOVE_OWNER, "Only Allow removeOwner call");
+            cardActivated = true;
+        }
     }
 
     function checkAfterExecution(bytes32, bool) external view override {}

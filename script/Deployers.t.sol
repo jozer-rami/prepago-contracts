@@ -77,11 +77,13 @@ contract DeployPrepaidGuardWithSafe is Script {
         address cardHodler = vm.envAddress("CARD_HODLER_1");
         address safeProxyFactory = vm.envAddress("SAFE_PROXY_FACTORY_ADDRESS");
         address safeMasterCopy = vm.envAddress("SAFE_MASTER_COPY_ADDRESS");
-
+        address[] memory owners = new address[](2);
+        owners[0] = cardHodler;
+        owners[1] = merchand;
+        uint256 threshold = 1;
         vm.startBroadcast();
-        PrepaidGuardCreator prepaidGuard =
-            new PrepaidGuardCreator(address(safeProxyFactory), address(safeMasterCopy), cardHodler, merchand);
-        address newPrepaidCard = prepaidGuard.createSafeProxy();
+        PrepaidGuardCreator prepaidGuard = new PrepaidGuardCreator(address(safeProxyFactory), address(safeMasterCopy));
+        address newPrepaidCard = prepaidGuard.createSafeProxy(owners, threshold);
         emit safeCreated(newPrepaidCard);
         vm.stopBroadcast();
     }
