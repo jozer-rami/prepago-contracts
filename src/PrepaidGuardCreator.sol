@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "./ISafeInterfaces.sol";
 import "./SetupHelper.sol";
 import {Guard} from "@safe-contracts/base/GuardManager.sol";
+import "@openzeppelin/token/ERC20/IERC20.sol";
 
 contract PrepaidGuardCreator is SetupHelper, Guard {
     address public safeProxyFactory;
@@ -23,7 +24,11 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
     }
 
     // Create a safe proxy that will set this contract as a Guard
-    function createSafeProxy(address[] memory owners, uint256 threshold) external payable returns (address safe) {
+    function createSafeProxy(address[] memory owners, uint256 threshold, address tokenAddress, uint256 tokenAmount)
+        external
+        payable
+        returns (address safe)
+    {
         bytes memory internalSetGuardData = abi.encodeWithSignature("internalSetGuard(address)", address(this));
 
         bytes memory data = abi.encodeWithSignature(
@@ -41,7 +46,14 @@ contract PrepaidGuardCreator is SetupHelper, Guard {
         ISafeProxy safeProxy = ISafeProxy(safeProxyFactory);
         try safeProxy.createProxy(safeMasterCopy, data) returns (address newSafe) {
             // Forward Ether to the newly created safe address
-            payable(newSafe).transfer(msg.value);
+            if (msg.value > 0) {
+                payable(newSafe).transfer(msg.value);
+            }
+            // Send ERC20 tokens
+            if (tokenAddress != address(0) && tokenAmount > 0) {
+                IERC20 token = IERC20(tokenAddress);
+                require(token.transferFrom(msg.sender, newSafe, tokenAmount), "ERC20 transfer failed");
+            }
             return newSafe;
         } catch {
             revert CreateSafeWithProxyFailed();

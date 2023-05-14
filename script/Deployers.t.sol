@@ -83,7 +83,7 @@ contract DeployPrepaidGuardWithSafe is Script {
         uint256 threshold = 1;
         vm.startBroadcast();
         PrepaidGuardCreator prepaidGuard = new PrepaidGuardCreator(address(safeProxyFactory), address(safeMasterCopy));
-        address newPrepaidCard = prepaidGuard.createSafeProxy(owners, threshold);
+        address newPrepaidCard = prepaidGuard.createSafeProxy(owners, threshold, address(0), 0);
         emit safeCreated(newPrepaidCard);
         vm.stopBroadcast();
     }
